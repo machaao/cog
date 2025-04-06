@@ -335,13 +335,24 @@ def create_app(  # pylint: disable=too-many-arguments,too-many-locals,too-many-s
 
     @app.get("/health-check")
     async def healthcheck() -> Any:
-        if app.state.health == Health.READY:
+        isReady = Health.READY
+        if app.state.health == isReady:
             health = Health.BUSY if runner.is_busy() else Health.READY
         else:
             health = app.state.health
-        setup = app.state.setup_result.to_dict() if app.state.setup_result else {}
-        return jsonable_encoder({"status": health.name, "setup": setup})
 
+        setup = app.state.setup_result.to_dict() if app.state.setup_result else {}
+        if isReady:
+            return JSONResponse(
+                jsonable_encoder({"status": health.name, "setup": setup, "modified": True}),
+                status_code=200,
+            )
+        else:
+            return JSONResponse(
+                jsonable_encoder({"status": health.name, "setup": setup, "modified": True}),
+                status_code=503
+            )
+        
     @limited
     @app.post(
         "/predictions",
